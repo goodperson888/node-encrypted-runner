@@ -158,6 +158,7 @@ API 请求使用一个完整邮箱地址，例如 `aahd1234@drime.space`。邮�
 | BROWSER_CHECKOUT_URL | `https://www.weee.com/en/order/checkout?cart_domain=grocery` | Weee 订单结算页 |
 | BROWSER_CHECKOUT_MODE | `prepare` | `cart` 回到购物车；`prepare` 打开支付表单后停止；`payment` 填写并保存支付方式 |
 | BROWSER_HEADLESS | false | false 显示浏览器窗口 |
+| BROWSER_KEEP_OPEN_ON_ERROR | false | true 时验证码或流程失败后保留浏览器窗口，便于排查 |
 | BROWSER_USE_BUNDLED | true | 优先使用已安装的 Playwright Chromium |
 | BROWSER_STORAGE_STATE | 空 | 可选的 Weee 浏览器状态文件；留空则每次使用干净会话 |
 | BITBROWSER_CONFIG_FILE | `bitbrowser.config.json` | 比特浏览器 JSON 配置文件 |
