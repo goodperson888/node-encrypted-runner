@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { execFileSync } = require("child_process");
-const { buildPayload, resolvePassword } = require("./build-payload");
+const { buildPayload, resolvePassword, resolveSourceFile } = require("./build-payload");
 
 const root = path.resolve(__dirname, "..");
 const distRoot = path.join(root, "dist");
@@ -55,11 +55,13 @@ function writeEmbeddedExecutable(outputDir, executableName) {
   const wrapper = process.platform === "win32"
     ? `@echo off
 cd /d "%~dp0"
+set APP_SHELL=true
 "%~dp0${protectedDirName}\\node\\node.exe" "%~dp0${protectedDirName}\\app\\runner.js" %*
 `
     : `#!/bin/bash
 set -e
 cd "$(dirname "$0")"
+export APP_SHELL=true
 exec "./${protectedDirName}/node/node" "./${protectedDirName}/app/runner.js" "$@"
 `;
   const wrapperPath = path.join(outputDir, executableName);
@@ -130,6 +132,24 @@ function prepareConfig(outputDir) {
   }
 }
 
+function preparePayload(outputDir, password) {
+  const destination = path.join(outputDir, "workflow.js.enc");
+  const configuredPayload = process.env.CLIENT_PAYLOAD_FILE
+    ? path.resolve(process.cwd(), process.env.CLIENT_PAYLOAD_FILE)
+    : path.join(root, "workflow.js.enc");
+  if (fs.existsSync(configuredPayload)) {
+    fs.copyFileSync(configuredPayload, destination, fs.constants.COPYFILE_FICLONE);
+    return true;
+  }
+  if (process.env.CLIENT_SKIP_PAYLOAD === "true") return false;
+  const sourceFile = resolveSourceFile();
+  if (!fs.existsSync(sourceFile)) {
+    throw new Error(`找不到流程载荷或本地流程源文件。请先生成 workflow.js.enc，或设置 FLOW_SOURCE_FILE。当前源文件：${sourceFile}`);
+  }
+  buildPayload(destination, password, sourceFile);
+  return true;
+}
+
 function prepareEmbeddedBundle(outputDir, executableName, target) {
   const targetIsMac = target.includes("macos");
   const targetIsWin = target.includes("win");
@@ -162,12 +182,12 @@ function prepareEmbeddedBundle(outputDir, executableName, target) {
   });
   const password = readBuildPassword();
   if (!password) throw new Error("客户运行器必须使用加密流程，请设置 CLIENT_RUN_PASSWORD 或 CLIENT_PAYLOAD_PASSWORD。");
-  buildPayload(path.join(outputDir, "workflow.js.enc"), password);
+  const payloadEnabled = preparePayload(outputDir, password);
   const passwordEnabled = writeLicense(protectedDir, password);
   prepareConfig(outputDir);
   writeEmbeddedExecutable(outputDir, executableName);
   writeLaunchers(outputDir, executableName, target);
-  writeClientReadme(outputDir, executableName, target, passwordEnabled);
+  writeClientReadme(outputDir, executableName, target, passwordEnabled && payloadEnabled);
 }
 
 function preparePkgBundle(outputDir, executableName, target) {
@@ -183,11 +203,11 @@ function preparePkgBundle(outputDir, executableName, target) {
   ], { cwd: root, stdio: "inherit" });
   const password = readBuildPassword();
   if (!password) throw new Error("客户运行器必须使用加密流程，请设置 CLIENT_RUN_PASSWORD 或 CLIENT_PAYLOAD_PASSWORD。");
-  buildPayload(path.join(outputDir, "workflow.js.enc"), password);
+  const payloadEnabled = preparePayload(outputDir, password);
   writeLicense(outputDir, password);
   prepareConfig(outputDir);
   writeLaunchers(outputDir, executableName, target);
-  writeClientReadme(outputDir, executableName, target, true);
+  writeClientReadme(outputDir, executableName, target, payloadEnabled);
   if (target.includes("win")) fs.renameSync(executablePath, `${executablePath}.exe`);
 }
 

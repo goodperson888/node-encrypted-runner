@@ -128,6 +128,8 @@ if (fs.existsSync(payloadFile)) {
   await workflow.main();
 } else if (process.pkg) {
   throw new Error(`找不到加密流程文件：${payloadFile}`);
+} else if (process.env.APP_SHELL === "true") {
+  throw new Error(`找不到加密流程文件：${payloadFile}。请把 workflow.js.enc 放到客户端根目录。`);
 } else {
   const runtimeFlowPath = path.resolve(runtimeDir, flowFile);
   const flowPath = fs.existsSync(runtimeFlowPath)

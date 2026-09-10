@@ -43,6 +43,7 @@ jobs:
       - name: Build Windows client
         env:
           CLIENT_RUN_PASSWORD: ${{ secrets.CLIENT_RUN_PASSWORD }}
+          CLIENT_SKIP_PAYLOAD: "true"
         run: npm run build:client:win
 
       - name: Upload client zip

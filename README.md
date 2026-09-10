@@ -17,7 +17,7 @@ npx playwright install chromium
 
 ## 打包给客户一键运行
 
-客户不需要安装 Node.js。打包机只需要执行一次：
+客户不需要安装 Node.js。首次生成运行器壳包：
 
 ```sh
 npm install
@@ -41,7 +41,7 @@ Windows 版本需要在 Windows x64 打包机执行 `npm run build:client:win`�
 
 ## GitHub 手动构建 Windows 包
 
-仓库中的 `.github/workflows/build-windows.yml` 只有 `workflow_dispatch` 触发器，不会在 push、提交或 Pull Request 时自动打包。把代码提交到 GitHub 后，在仓库页面点击 **Actions → 手动构建 Windows 客户端 → Run workflow**，完成后从该次运行的 Artifacts 下载 Windows 压缩包。
+仓库中的 `.github/workflows/build-windows.yml` 只有 `workflow_dispatch` 触发器，不会在 push、提交或 Pull Request 时自动打包。仓库只保存运行器壳；在仓库页面点击 **Actions → 手动构建 Windows 客户端 → Run workflow**，完成后从该次运行的 Artifacts 下载 Windows 壳包。
 
 第一次使用前，在仓库 **Settings → Secrets and variables → Actions** 添加：
 
@@ -49,20 +49,26 @@ Windows 版本需要在 Windows x64 打包机执行 `npm run build:client:win`�
 CLIENT_RUN_PASSWORD=客户运行器密码
 ```
 
-这个密码用于生成隐藏的 `license.json` 和加密 `workflow.js.enc`。不要把密码写进仓库文件。
+这个密码用于生成隐藏的 `license.json`。不要把密码写进仓库文件。Windows 工作流默认只构建壳，不包含流程载荷。
 
-流程更新不需要重新构建完整 Windows 包。可以点击 **手动构建加密流程文件** 工作流，使用同一个 `CLIENT_PAYLOAD_PASSWORD` Secret，下载几十 KB 的 `workflow.js.enc` 后覆盖客户包根目录的同名文件。两个 Secret 的值必须相同。
+## 本地生成加密流程文件
 
-## 只更新加密流程文件
-
-运行器包只需要给客户一次。以后流程有更新时，不需要重新发送 60 MB 左右的运行器压缩包，只生成并发送几十 KB 的 `workflow.js.enc`：
+流程源码保留在本地，不提交到 Git。直接在本地生成几十 KB 的加密流程文件：
 
 ```sh
-CLIENT_RUN_PASSWORD=和客户运行器相同的密码 \
-  npm run build:payload -- /path/to/workflow.js.enc
+FLOW_SOURCE_FILE=/你的本地路径/browser-flow.js \
+CLIENT_PAYLOAD_PASSWORD='和运行器相同的密码' \
+npm run build:payload -- /你的输出路径/workflow.js.enc
 ```
 
-把生成的 `workflow.js.enc` 覆盖客户包根目录的同名文件即可。运行器会在内存中解密并执行，磁盘上不会生成明文流程文件。加密密码必须和首次交付运行器时使用的密码一致；客户不需要重新安装 Node.js 或 Playwright。
+如果流程文件和当前项目同目录，可以省略 `FLOW_SOURCE_FILE`：
+
+```sh
+CLIENT_PAYLOAD_PASSWORD='和运行器相同的密码' \
+npm run build:payload -- workflow.js.enc
+```
+
+把生成的 `workflow.js.enc` 放进 Windows 壳包根目录即可。运行器会在内存中解密并执行，不会在磁盘生成明文流程文件。后续流程更新只替换这个文件，不需要重新构建完整运行器包。
 
 这个方案能防止普通用户直接打开、复制源码，但无法防住有本机管理员权限并进行调试或内存提取的逆向分析。需要更强授权控制时，应把解密密钥放到服务端并按设备发放。
 

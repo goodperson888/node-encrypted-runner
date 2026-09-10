@@ -10,5 +10,14 @@ cards.txt
 saved-cards.txt
 client-password.txt
 workflow.js.enc
+browser-flow.js
+browser-flow.test.js
+bitbrowser-client.js
+bitbrowser-client.test.js
+temp-mail-api.js
+temp-mail-api.test.js
+protocol-workbench-project.json
+storage-state*.json
+customer-config.json
 output/
 dist/
