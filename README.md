@@ -104,7 +104,7 @@ BitBrowser 的官方接口是本机 Local Server 的 POST API：程序调用 `/b
 BROWSER_PROVIDER=bitbrowser
 BITBROWSER_API_URL=http://127.0.0.1:54345
 BITBROWSER_BROWSER_IDS=7deac3de717c442caad015f63a436f73
-BITBROWSER_QUEUE=true
+BITBROWSER_QUEUE=false
 BITBROWSER_CLOSE_ON_EXIT=false
 ```
 
@@ -115,7 +115,7 @@ BITBROWSER_CLOSE_ON_EXIT=false
   "provider": "bitbrowser",
   "apiUrl": "http://127.0.0.1:54345",
   "browserIds": ["窗口 ID 1", "窗口 ID 2"],
-  "queue": true,
+  "queue": false,
   "parallel": false,
   "closeOnExit": false,
   "apiToken": "",
@@ -129,7 +129,7 @@ BITBROWSER_CLOSE_ON_EXIT=false
 
 客户如果要使用代理，可在 `bitbrowser.config.json` 的 `proxyUrl` 或 `.env` 的 `BITBROWSER_PROXY_URL` 填写完整 URL，例如 `socks5h://用户名:密码@主机:端口`。程序会在启动窗口前调用 BitBrowser 的代理更新接口；`socks5h` 会映射为 BitBrowser 支持的 `socks5`。如果 BitBrowser 返回代理更新权限不足，默认会写入日志并继续使用窗口里已有的代理配置；设置 `BITBROWSER_PROXY_STRICT=true` 后，代理更新失败会直接停止。
 
-如果 `/browser/open` 返回“权限不足，无法执行此操作”，说明 BitBrowser 本地 API 拒绝了打开窗口。先确认客户登录的 BitBrowser 账号有该窗口权限；如果开启了 Local API Token 鉴权，把 token 填到 `.env` 的 `BITBROWSER_API_TOKEN` 或 `bitbrowser.config.json` 的 `apiToken`。
+如果 `/browser/open` 返回“权限不足，无法执行此操作”，说明 BitBrowser 本地 API 拒绝了打开窗口。先确认客户登录的 BitBrowser 账号有该窗口权限、窗口 ID 属于当前账号/团队；如果开启了 Local API Token 鉴权，把 token 填到 `.env` 的 `BITBROWSER_API_TOKEN` 或 `bitbrowser.config.json` 的 `apiToken`。客户可以运行 `启动.bat --check-bitbrowser-api` 单独检查 Local API 是否能打开配置中的第一个窗口。
 
 API 请求使用一个完整邮箱地址，例如 `aahd1234@drime.space`。邮箱地址中的 `@` 会由 URL 参数自动编码；不要把域名重复拼到 `email` 参数中。邮件最多保留约 20 分钟，令牌和域名到期时间以供应商后台为准。
 
@@ -157,7 +157,7 @@ API 请求使用一个完整邮箱地址，例如 `aahd1234@drime.space`。邮�
 | BITBROWSER_CONFIG_FILE | `bitbrowser.config.json` | 比特浏览器 JSON 配置文件 |
 | BITBROWSER_API_URL | `http://127.0.0.1:54345` | BitBrowser Local Server 地址 |
 | BITBROWSER_BROWSER_IDS | 空 | 一个或多个指纹浏览器 ID，逗号或空格分隔 |
-| BITBROWSER_QUEUE | true | 按官方队列方式启动窗口，降低多窗口并发启动冲突 |
+| BITBROWSER_QUEUE | false | true 时给 `/browser/open` 传队列参数；默认不传，兼容 7.1.4 |
 | BITBROWSER_CLOSE_ON_EXIT | false | 流程结束后是否调用 `/browser/close` 关闭窗口 |
 | BITBROWSER_API_TOKEN | 空 | BitBrowser 开启 Local API Token 鉴权时填写 |
 | BITBROWSER_PROXY_URL | 空 | 可选代理 URL，例如 `socks5h://user:password@host:port` |
