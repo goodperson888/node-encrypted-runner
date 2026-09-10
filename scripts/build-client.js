@@ -57,9 +57,20 @@ function writeEmbeddedExecutable(outputDir, executableName) {
   const wrapper = process.platform === "win32"
     ? `@echo off
 cd /d "%~dp0"
+set "APP_HOME=%~dp0"
+if not exist "%~dp0logs" mkdir "%~dp0logs" >nul 2>&1
+echo [日志] 日志文件：%~dp0logs\\latest.log
 set APP_SHELL=true
 "%~dp0${protectedDirName}\\node\\node.exe" "%~dp0${protectedDirName}\\app\\runner.js" %*
-exit /b %ERRORLEVEL%
+set EXIT_CODE=%ERRORLEVEL%
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo 程序运行失败，日志文件：
+  echo %~dp0logs\\latest.log
+  echo 请把该文件发给技术人员。
+  pause
+)
+exit /b %EXIT_CODE%
 `
     : `#!/bin/bash
 set -e
@@ -92,12 +103,16 @@ exec "./${executableName}" "$@"
     : `"%~dp0${windowsTarget}" %*`;
   const winLauncher = `@echo off
 cd /d "%~dp0"
+set "APP_HOME=%~dp0"
+if not exist "%~dp0logs" mkdir "%~dp0logs" >nul 2>&1
+echo [日志] 日志文件：%~dp0logs\\latest.log
 ${windowsRunCommand}
 set EXIT_CODE=%ERRORLEVEL%
 if not "%EXIT_CODE%"=="0" (
   echo.
-  echo 程序运行失败，错误已写入 logs\\latest.log。
-  echo 请把当前窗口截图，或把 logs\\latest.log 发给技术人员。
+  echo 程序运行失败，日志文件：
+  echo %~dp0logs\\latest.log
+  echo 请把该文件发给技术人员。
   pause
 )
 exit /b %EXIT_CODE%
