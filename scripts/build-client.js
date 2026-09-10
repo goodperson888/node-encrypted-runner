@@ -83,6 +83,7 @@ function writeBuildInfo(outputDir, target) {
 function writeEmbeddedExecutable(outputDir, executableName) {
   const wrapper = process.platform === "win32"
     ? `@echo off
+setlocal EnableExtensions
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
 set "LOG_DIR=%~dp0logs"
@@ -92,6 +93,19 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
 if not exist "%LOG_FILE%" echo [launcher] 启动器已创建日志文件 > "%LOG_FILE%"
 >>"%LOG_FILE%" echo [launcher] APP_HOME=%APP_HOME%
 if exist "%~dp0client-build.txt" type "%~dp0client-build.txt" >>"%LOG_FILE%"
+>>"%LOG_FILE%" echo [launcher] inner_runner_start=%~dp0${protectedDirName}\\app\\runner.js
+if not exist "%~dp0${protectedDirName}\\node\\node.exe" (
+  >>"%LOG_FILE%" echo [launcher] ERROR missing_node=%~dp0${protectedDirName}\\node\\node.exe
+  echo 找不到内置 Node.js，日志文件：%LOG_FILE%
+  pause
+  exit /b 2
+)
+if not exist "%~dp0${protectedDirName}\\app\\runner.js" (
+  >>"%LOG_FILE%" echo [launcher] ERROR missing_runner=%~dp0${protectedDirName}\\app\\runner.js
+  echo 找不到运行器文件，日志文件：%LOG_FILE%
+  pause
+  exit /b 3
+)
 echo [日志] 日志文件：%LOG_FILE%
 set APP_SHELL=true
 "%~dp0${protectedDirName}\\node\\node.exe" "%~dp0${protectedDirName}\\app\\runner.js" %* 2>>"%LOG_FILE%"
@@ -136,6 +150,7 @@ exec "./${executableName}" "$@"
     ? `call "%~dp0${windowsTarget}" %*`
     : `"%~dp0${windowsTarget}" %*`;
   const winLauncher = `@echo off
+setlocal EnableExtensions
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
 set "LOG_DIR=%~dp0logs"
@@ -145,6 +160,13 @@ if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
 if not exist "%LOG_FILE%" echo [launcher] 启动器已创建日志文件 > "%LOG_FILE%"
 >>"%LOG_FILE%" echo [launcher] APP_HOME=%APP_HOME%
 if exist "%~dp0client-build.txt" type "%~dp0client-build.txt" >>"%LOG_FILE%"
+>>"%LOG_FILE%" echo [launcher] outer_launcher_start=%~dp0${windowsTarget}
+if not exist "%~dp0${windowsTarget}" (
+  >>"%LOG_FILE%" echo [launcher] ERROR missing_target=%~dp0${windowsTarget}
+  echo 找不到客户端启动文件，日志文件：%LOG_FILE%
+  pause
+  exit /b 4
+)
 echo [日志] 日志文件：%LOG_FILE%
 ${windowsRunCommand}
 set EXIT_CODE=%ERRORLEVEL%
