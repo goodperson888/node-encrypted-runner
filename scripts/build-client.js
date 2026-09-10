@@ -85,28 +85,17 @@ function writeEmbeddedExecutable(outputDir, executableName) {
     ? `@echo off
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
-if not exist "${protectedDirName}\\node\\node.exe" goto missing_node
-if not exist "${protectedDirName}\\app\\runner.js" goto missing_runner
 echo [日志] 日志文件：logs\\latest.log
 set APP_SHELL=true
 "${protectedDirName}\\node\\node.exe" "${protectedDirName}\\app\\runner.js" %*
 set EXIT_CODE=%ERRORLEVEL%
-if "%EXIT_CODE%"=="0" goto inner_done
+if "%EXIT_CODE%"=="0" exit /b 0
 echo.
 echo 程序运行失败，日志文件：
 echo logs\\latest.log
 echo 请把该文件发给技术人员。
 pause
-:inner_done
 exit /b %EXIT_CODE%
-:missing_node
-echo 找不到内置 Node.js，日志文件：logs\\latest.log
-pause
-exit /b 2
-:missing_runner
-echo 找不到运行器文件，日志文件：logs\\latest.log
-pause
-exit /b 3
 `
     : `#!/bin/bash
 set -e
@@ -135,27 +124,21 @@ exec "./${executableName}" "$@"
 
   const windowsTarget = packager === "pkg" ? `${executableName}.exe` : `${executableName}.bat`;
   const windowsRunCommand = windowsTarget.endsWith(".bat")
-    ? `call "%~dp0${windowsTarget}" %*`
-    : `"%~dp0${windowsTarget}" %*`;
+    ? `call "${windowsTarget}" %*`
+    : `"${windowsTarget}" %*`;
   const winLauncher = `@echo off
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
-if not exist "${windowsTarget}" goto missing_target
 echo [日志] 日志文件：logs\\latest.log
 ${windowsRunCommand}
 set EXIT_CODE=%ERRORLEVEL%
-if "%EXIT_CODE%"=="0" goto outer_done
+if "%EXIT_CODE%"=="0" exit /b 0
 echo.
 echo 程序运行失败，日志文件：
 echo logs\\latest.log
 echo 请把该文件发给技术人员。
 pause
-:outer_done
 exit /b %EXIT_CODE%
-:missing_target
-echo 找不到客户端启动文件，日志文件：logs\\latest.log
-pause
-exit /b 4
 `;
   fs.writeFileSync(path.join(outputDir, "启动.bat"), winLauncher);
 }
