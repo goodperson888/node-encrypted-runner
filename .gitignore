@@ -23,3 +23,5 @@ storage-state*.json
 customer-config.json
 output/
 dist/
+logs/
+*.log

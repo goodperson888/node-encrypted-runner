@@ -34,6 +34,7 @@ CLIENT_PAYLOAD_PASSWORD='流程文件密码' npm run build:client:mac
 4. 编辑 `bitbrowser.config.json` 填写自己的指纹浏览器 ID；代理可填 `proxyUrl`。
 5. 将卡片逐行写入 `cards.txt`，格式为 `卡号|MM|YYYY`。
 6. 双击 `启动.command`。
+7. 如果运行失败，查看 `logs/latest.log`；Windows 启动脚本会停在错误窗口，便于截图。
 
 Windows 版本需要在 Windows x64 打包机执行 `npm run build:client:win`，生成 `dist/weee-flow-win-x64.zip`，客户双击 `启动.bat`。压缩包中的客户端已经包含 Node.js 运行时；BitBrowser 本身仍需要客户安装并启动。默认使用 BitBrowser 时不需要额外下载 Playwright Chromium。
 
@@ -78,6 +79,8 @@ npm run encrypt
 
 把生成的 `workflow.js.enc` 放进 Windows 壳包根目录即可。运行器启动时会要求输入这里设置的流程密码；如果 `.env` 中配置了 `APP_PAYLOAD_PASSWORD`，则不会提示输入。运行器会在内存中解密并执行，不会在磁盘生成明文流程文件。后续流程更新只替换这个文件，不需要重新构建完整运行器包。
 
+运行器默认把每次启动、普通输出、错误堆栈写入 `logs/latest.log`。如果客户说“闪退”，先让客户打开这个文件或截图 Windows 停留窗口。
+
 这个方案能防止普通用户直接打开、复制源码，但无法防住有本机管理员权限并进行调试或内存提取的逆向分析。需要更强授权控制时，应把解密密钥放到服务端并按设备发放。
 
 ## 运行
@@ -115,6 +118,7 @@ BITBROWSER_CLOSE_ON_EXIT=false
   "queue": true,
   "parallel": false,
   "closeOnExit": false,
+  "apiToken": "",
   "proxyUrl": ""
 }
 ```
@@ -123,7 +127,9 @@ BITBROWSER_CLOSE_ON_EXIT=false
 
 每个窗口都会生成独立的随机邮箱地址，验证码 API 请求始终带对应的完整邮箱地址，因此窗口之间不会互相读取验证码。进程内的 `receive` 请求还会自动错开，降低多个窗口同时轮询触发邮箱服务商限流的概率。并行模式会拒绝重复使用同一个 BitBrowser ID；如果 `BROWSER_DATA_FILE` 行数超过窗口数，必须为每行配置唯一的 `browserId`，否则程序会在启动时直接提示配置冲突。
 
-客户如果要使用代理，可在 `bitbrowser.config.json` 的 `proxyUrl` 或 `.env` 的 `BITBROWSER_PROXY_URL` 填写完整 URL，例如 `socks5h://用户名:密码@主机:端口`。程序会在启动窗口前调用 BitBrowser 的代理更新接口；`socks5h` 会映射为 BitBrowser 支持的 `socks5`。
+客户如果要使用代理，可在 `bitbrowser.config.json` 的 `proxyUrl` 或 `.env` 的 `BITBROWSER_PROXY_URL` 填写完整 URL，例如 `socks5h://用户名:密码@主机:端口`。程序会在启动窗口前调用 BitBrowser 的代理更新接口；`socks5h` 会映射为 BitBrowser 支持的 `socks5`。如果 BitBrowser 返回代理更新权限不足，默认会写入日志并继续使用窗口里已有的代理配置；设置 `BITBROWSER_PROXY_STRICT=true` 后，代理更新失败会直接停止。
+
+如果 `/browser/open` 返回“权限不足，无法执行此操作”，说明 BitBrowser 本地 API 拒绝了打开窗口。先确认客户登录的 BitBrowser 账号有该窗口权限；如果开启了 Local API Token 鉴权，把 token 填到 `.env` 的 `BITBROWSER_API_TOKEN` 或 `bitbrowser.config.json` 的 `apiToken`。
 
 API 请求使用一个完整邮箱地址，例如 `aahd1234@drime.space`。邮箱地址中的 `@` 会由 URL 参数自动编码；不要把域名重复拼到 `email` 参数中。邮件最多保留约 20 分钟，令牌和域名到期时间以供应商后台为准。
 
@@ -137,6 +143,7 @@ API 请求使用一个完整邮箱地址，例如 `aahd1234@drime.space`。邮�
 | TEMP_MAIL_API_URL | `https://mb-d.vfutai.com/y/` | vfutai JSON API 地址 |
 | TEMP_MAIL_API_TIMEOUT_MS | 15000 | 单次 API 请求超时（毫秒） |
 | TEMP_MAIL_MIN_REQUEST_INTERVAL_MS | 250 | 同一进程内邮箱 `receive` 请求的最小间隔（毫秒） |
+| APP_LOG_FILE | `logs/latest.log` | 运行日志文件路径；设置为 `off` 可关闭日志 |
 | BROWSER_CODE_TIMEOUT_MS | 120000 | 收验证码的最长等待（毫秒） |
 | BROWSER_MAIL_POLL_MS | 5000 | API 轮询间隔（毫秒） |
 | BROWSER_CART_URL | `https://www.weee.com/en/cart` | Weee 购物车页 |
@@ -152,7 +159,9 @@ API 请求使用一个完整邮箱地址，例如 `aahd1234@drime.space`。邮�
 | BITBROWSER_BROWSER_IDS | 空 | 一个或多个指纹浏览器 ID，逗号或空格分隔 |
 | BITBROWSER_QUEUE | true | 按官方队列方式启动窗口，降低多窗口并发启动冲突 |
 | BITBROWSER_CLOSE_ON_EXIT | false | 流程结束后是否调用 `/browser/close` 关闭窗口 |
+| BITBROWSER_API_TOKEN | 空 | BitBrowser 开启 Local API Token 鉴权时填写 |
 | BITBROWSER_PROXY_URL | 空 | 可选代理 URL，例如 `socks5h://user:password@host:port` |
+| BITBROWSER_PROXY_STRICT | false | true 时代理 API 更新失败就停止；false 时继续使用窗口已有代理 |
 | PAYMENT_CARD_FILE | `cards.txt` | 卡片逐行输入文件，相对客户包目录解析 |
 | PAYMENT_SAVED_FILE | `saved-cards.txt` | 保存成功卡片的原始行记录文件 |
 | PAYMENT_MAX_SAVES_PER_MAILBOX | 3 | 每个临时邮箱最多保存的卡片数量 |

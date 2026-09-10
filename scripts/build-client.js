@@ -59,6 +59,7 @@ function writeEmbeddedExecutable(outputDir, executableName) {
 cd /d "%~dp0"
 set APP_SHELL=true
 "%~dp0${protectedDirName}\\node\\node.exe" "%~dp0${protectedDirName}\\app\\runner.js" %*
+exit /b %ERRORLEVEL%
 `
     : `#!/bin/bash
 set -e
@@ -86,9 +87,20 @@ exec "./${executableName}" "$@"
   }
 
   const windowsTarget = packager === "pkg" ? `${executableName}.exe` : `${executableName}.bat`;
+  const windowsRunCommand = windowsTarget.endsWith(".bat")
+    ? `call "%~dp0${windowsTarget}" %*`
+    : `"%~dp0${windowsTarget}" %*`;
   const winLauncher = `@echo off
 cd /d "%~dp0"
-"%~dp0${windowsTarget}" %*
+${windowsRunCommand}
+set EXIT_CODE=%ERRORLEVEL%
+if not "%EXIT_CODE%"=="0" (
+  echo.
+  echo 程序运行失败，错误已写入 logs\\latest.log。
+  echo 请把当前窗口截图，或把 logs\\latest.log 发给技术人员。
+  pause
+)
+exit /b %EXIT_CODE%
 `;
   fs.writeFileSync(path.join(outputDir, "启动.bat"), winLauncher);
 }
@@ -105,6 +117,7 @@ function writeClientReadme(outputDir, executableName, target, runPasswordEnabled
 4. 将卡片逐行写入同级目录的 cards.txt，格式为 cardNumber|MM|YYYY。
 5. 如需代理，在 bitbrowser.config.json 的 proxyUrl 或 .env 的 BITBROWSER_PROXY_URL 填写 socks5h://用户名:密码@主机:端口。
 6. 双击 启动.command（macOS）或 启动.bat（Windows）。
+7. 如果运行失败，查看 logs/latest.log；Windows 会停在错误窗口，不会直接闪退。
 
 本目录的客户端已经带有 Node.js 运行时，客户不需要安装 Node.js。
 程序文件放在隐藏目录 ${protectedDirName}，客户通常只需要改 .env、bitbrowser.config.json、cards.txt 和 workflow.js.enc。
@@ -138,6 +151,7 @@ function prepareConfig(outputDir) {
 
 function preparePayload(outputDir, payloadPassword) {
   const destination = path.join(outputDir, "workflow.js.enc");
+  if (process.env.CLIENT_SKIP_PAYLOAD === "true") return false;
   const configuredPayload = process.env.CLIENT_PAYLOAD_FILE
     ? path.resolve(process.cwd(), process.env.CLIENT_PAYLOAD_FILE)
     : path.join(root, "workflow.js.enc");
@@ -145,7 +159,6 @@ function preparePayload(outputDir, payloadPassword) {
     fs.copyFileSync(configuredPayload, destination, fs.constants.COPYFILE_FICLONE);
     return true;
   }
-  if (process.env.CLIENT_SKIP_PAYLOAD === "true") return false;
   const sourceFile = resolveSourceFile();
   if (!fs.existsSync(sourceFile)) {
     throw new Error(`找不到流程载荷或本地流程源文件。请先生成 workflow.js.enc，或设置 FLOW_SOURCE_FILE。当前源文件：${sourceFile}`);

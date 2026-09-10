@@ -8,5 +8,7 @@
   "parallel": true,
   "closeOnExit": false,
   "apiTimeoutMs": 15000,
-  "proxyUrl": ""
+  "apiToken": "",
+  "proxyUrl": "",
+  "proxyStrict": false
 }

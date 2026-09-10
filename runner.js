@@ -5,6 +5,7 @@ const path = require("path");
 const crypto = require("crypto");
 const Module = require("module");
 const readline = require("readline");
+const util = require("util");
 const { spawn } = require("child_process");
 const { decryptPayload } = require("./payload-crypto");
 
@@ -20,6 +21,45 @@ if (fs.existsSync(envFile)) {
     process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, "");
   }
 }
+
+function timestamp() {
+  return new Date().toISOString().replace("T", " ").replace("Z", "");
+}
+
+function formatLogArg(value) {
+  if (value instanceof Error) return value.stack || value.message;
+  if (typeof value === "string") return value;
+  return util.inspect(value, { depth: 5, colors: false, breakLength: 160 });
+}
+
+function setupLogFile() {
+  const configured = String(process.env.APP_LOG_FILE || "logs/latest.log").trim();
+  if (!configured || /^(?:false|off|none)$/i.test(configured)) return "";
+  const logFile = path.isAbsolute(configured) ? configured : path.resolve(runtimeDir, configured);
+  fs.mkdirSync(path.dirname(logFile), { recursive: true });
+  fs.writeFileSync(logFile, `[${timestamp()}] [start] APP_HOME=${runtimeDir}\n`, { mode: 0o600 });
+  const append = (level, args) => {
+    try {
+      fs.appendFileSync(logFile, `[${timestamp()}] [${level}] ${args.map(formatLogArg).join(" ")}\n`);
+    } catch {
+      // Logging must never break the automation flow.
+    }
+  };
+  for (const level of ["log", "info", "warn", "error"]) {
+    const original = console[level].bind(console);
+    console[level] = (...args) => {
+      original(...args);
+      append(level, args);
+    };
+  }
+  process.env.APP_LOG_FILE_RESOLVED = logFile;
+  process.on("uncaughtExceptionMonitor", (error) => append("uncaughtException", [error]));
+  process.on("unhandledRejection", (reason) => append("unhandledRejection", [reason]));
+  console.log(`[日志] 本次运行日志：${logFile}`);
+  return logFile;
+}
+
+setupLogFile();
 
 function hashPassword(password, salt) {
   return crypto.scryptSync(String(password), String(salt), 32).toString("hex");
@@ -115,7 +155,14 @@ async function loadPayloadModule(password) {
     throw new Error(`找不到加密流程文件：${payloadFile}`);
   }
   const encrypted = fs.readFileSync(payloadFile, "utf8");
-  const source = decryptPayload(encrypted, password);
+  let source;
+  try {
+    source = decryptPayload(encrypted, password);
+  } catch (error) {
+    const wrapped = new Error("流程解密失败：密码不正确，或 workflow.js.enc 不是用当前流程密码生成的。");
+    wrapped.cause = error;
+    throw wrapped;
+  }
   const workflow = new Module(payloadFile, module);
   workflow.filename = payloadFile;
   workflow.paths = Module._nodeModulePaths(__dirname);
