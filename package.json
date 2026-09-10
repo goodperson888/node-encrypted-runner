@@ -1,0 +1,26 @@
+{
+  "name": "protocol-flow-export",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node runner.js",
+    "run": "node runner.js",
+    "check:mail": "node runner.js --check-mail-api",
+    "test": "node --test *.test.js",
+    "build:payload": "node scripts/build-payload.js",
+    "build:client": "node scripts/build-client.js",
+    "build:client:mac": "CLIENT_TARGETS=node20-macos-arm64 npm run build:client",
+    "build:client:win": "CLIENT_TARGETS=node20-win-x64 npm run build:client"
+  },
+  "dependencies": {
+    "playwright": "^1.53.0"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.22.0",
+    "esbuild": "^0.28.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

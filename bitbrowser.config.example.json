@@ -1,0 +1,12 @@
+{
+  "provider": "bitbrowser",
+  "apiUrl": "http://127.0.0.1:54345",
+  "browserIds": [
+    "7deac3de717c442caad015f63a436f73"
+  ],
+  "queue": true,
+  "parallel": false,
+  "closeOnExit": false,
+  "apiTimeoutMs": 15000,
+  "proxyUrl": ""
+}

@@ -1,0 +1,14 @@
+
+node_modules/
+.DS_Store
+.env
+.env.*
+!.env.example
+storage-state*.json
+bitbrowser.config.json
+cards.txt
+saved-cards.txt
+client-password.txt
+workflow.js.enc
+output/
+dist/

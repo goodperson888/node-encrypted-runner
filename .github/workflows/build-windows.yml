@@ -1,0 +1,54 @@
+name: 手动构建 Windows 客户端
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_name:
+        description: "构建产物名称"
+        required: false
+        default: "weee-flow-windows"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Check build password
+        shell: pwsh
+        env:
+          CLIENT_RUN_PASSWORD: ${{ secrets.CLIENT_RUN_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CLIENT_RUN_PASSWORD)) {
+            throw "请先在仓库 Settings > Secrets and variables > Actions 中设置 CLIENT_RUN_PASSWORD。"
+          }
+
+      - name: Build Windows client
+        env:
+          CLIENT_RUN_PASSWORD: ${{ secrets.CLIENT_RUN_PASSWORD }}
+        run: npm run build:client:win
+
+      - name: Upload client zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: dist/weee-flow-win-x64.zip
+          if-no-files-found: error
+          retention-days: 14

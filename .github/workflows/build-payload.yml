@@ -1,0 +1,55 @@
+name: 手动构建加密流程文件
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_name:
+        description: "流程文件产物名称"
+        required: false
+        default: "workflow-payload"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Check payload password
+        shell: bash
+        env:
+          CLIENT_PAYLOAD_PASSWORD: ${{ secrets.CLIENT_PAYLOAD_PASSWORD }}
+        run: |
+          test -n "$CLIENT_PAYLOAD_PASSWORD" || {
+            echo "请先设置 CLIENT_PAYLOAD_PASSWORD；它必须与客户运行器密码一致。" >&2
+            exit 1
+          }
+
+      - name: Build encrypted workflow payload
+        env:
+          CLIENT_PAYLOAD_PASSWORD: ${{ secrets.CLIENT_PAYLOAD_PASSWORD }}
+        run: npm run build:payload -- workflow.js.enc
+
+      - name: Upload workflow payload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: workflow.js.enc
+          if-no-files-found: error
+          retention-days: 14

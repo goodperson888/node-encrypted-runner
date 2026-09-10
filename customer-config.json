@@ -1,0 +1,5 @@
+{
+  "flowFile": "browser-flow.js",
+  "replaceOnly": "流程文件和 .env",
+  "usage": "修改流程时替换 flowFile 指向的脚本；账号、循环数据和浏览器选项写在 .env"
+}
