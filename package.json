@@ -11,8 +11,8 @@
     "build:payload": "node scripts/build-payload.js",
     "encrypt": "node scripts/build-payload.js",
     "build:client": "node scripts/build-client.js",
-    "build:client:mac": "CLIENT_TARGETS=node20-macos-arm64 npm run build:client",
-    "build:client:win": "CLIENT_TARGETS=node20-win-x64 npm run build:client"
+    "build:client:mac": "node scripts/build-client-target.js node20-macos-arm64",
+    "build:client:win": "node scripts/build-client-target.js node20-win-x64"
   },
   "dependencies": {
     "playwright": "^1.53.0"
