@@ -121,6 +121,8 @@ BITBROWSER_CLOSE_ON_EXIT=false
 
 `browserIds` 填多个 ID 时，设置 `parallel: true` 或 `BROWSER_PARALLEL=true` 会同时运行多个窗口；保持 `false` 则按窗口顺序运行。支付模式下，程序会在同一次启动内建立共享卡片队列，各窗口按队列串行领取 `cards.txt` 的行号，已经领取的行不会再次分配；绑卡频繁限制时，未完成的当前行会重新排到队尾重试。`BROWSER_DATA_FILE` 的每一行也可以指定 `"browserId"`，该行会固定使用对应的指纹窗口。要让多个窗口处理不同卡片，使用同一个共享的 `cards.txt`，不要在每行 `payment` 字段中重复写同一张卡。
 
+每个窗口都会生成独立的随机邮箱地址，验证码 API 请求始终带对应的完整邮箱地址，因此窗口之间不会互相读取验证码。进程内的 `receive` 请求还会自动错开，降低多个窗口同时轮询触发邮箱服务商限流的概率。并行模式会拒绝重复使用同一个 BitBrowser ID；如果 `BROWSER_DATA_FILE` 行数超过窗口数，必须为每行配置唯一的 `browserId`，否则程序会在启动时直接提示配置冲突。
+
 客户如果要使用代理，可在 `bitbrowser.config.json` 的 `proxyUrl` 或 `.env` 的 `BITBROWSER_PROXY_URL` 填写完整 URL，例如 `socks5h://用户名:密码@主机:端口`。程序会在启动窗口前调用 BitBrowser 的代理更新接口；`socks5h` 会映射为 BitBrowser 支持的 `socks5`。
 
 API 请求使用一个完整邮箱地址，例如 `aahd1234@drime.space`。邮箱地址中的 `@` 会由 URL 参数自动编码；不要把域名重复拼到 `email` 参数中。邮件最多保留约 20 分钟，令牌和域名到期时间以供应商后台为准。
@@ -134,6 +136,7 @@ API 请求使用一个完整邮箱地址，例如 `aahd1234@drime.space`。邮�
 | TEMP_MAIL_DOMAIN | `drime.space` | 供应商已分配的邮箱域名 |
 | TEMP_MAIL_API_URL | `https://mb-d.vfutai.com/y/` | vfutai JSON API 地址 |
 | TEMP_MAIL_API_TIMEOUT_MS | 15000 | 单次 API 请求超时（毫秒） |
+| TEMP_MAIL_MIN_REQUEST_INTERVAL_MS | 250 | 同一进程内邮箱 `receive` 请求的最小间隔（毫秒） |
 | BROWSER_CODE_TIMEOUT_MS | 120000 | 收验证码的最长等待（毫秒） |
 | BROWSER_MAIL_POLL_MS | 5000 | API 轮询间隔（毫秒） |
 | BROWSER_CART_URL | `https://www.weee.com/en/cart` | Weee 购物车页 |
