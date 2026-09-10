@@ -98,7 +98,14 @@ function resolvePayloadFile() {
 }
 
 async function askPayloadPassword() {
-  if (process.env.APP_RUN_PASSWORD) return process.env.APP_RUN_PASSWORD;
+  if (process.env.APP_PAYLOAD_PASSWORD) return process.env.APP_PAYLOAD_PASSWORD;
+  const configuredFile = process.env.APP_PAYLOAD_PASSWORD_FILE;
+  if (configuredFile) {
+    const file = path.isAbsolute(configuredFile)
+      ? configuredFile
+      : path.resolve(runtimeDir, configuredFile);
+    if (fs.existsSync(file)) return fs.readFileSync(file, "utf8").trim();
+  }
   return askHidden("请输入流程解密密码：");
 }
 

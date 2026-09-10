@@ -31,15 +31,6 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Check build password
-        shell: pwsh
-        env:
-          CLIENT_RUN_PASSWORD: ${{ secrets.CLIENT_RUN_PASSWORD }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:CLIENT_RUN_PASSWORD)) {
-            throw "请先在仓库 Settings > Secrets and variables > Actions 中设置 CLIENT_RUN_PASSWORD。"
-          }
-
       - name: Build Windows client
         env:
           CLIENT_RUN_PASSWORD: ${{ secrets.CLIENT_RUN_PASSWORD }}

@@ -9,6 +9,8 @@ bitbrowser.config.json
 cards.txt
 saved-cards.txt
 client-password.txt
+payload-password.txt
+client-run-password.txt
 workflow.js.enc
 browser-flow.js
 browser-flow.test.js

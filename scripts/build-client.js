@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { execFileSync } = require("child_process");
-const { buildPayload, resolvePassword, resolveSourceFile } = require("./build-payload");
+const { buildPayload, resolvePayloadPassword, resolveSourceFile } = require("./build-payload");
 
 const root = path.resolve(__dirname, "..");
 const distRoot = path.join(root, "dist");
@@ -36,11 +36,13 @@ function hashPassword(password, salt) {
   return crypto.scryptSync(String(password), String(salt), 32).toString("hex");
 }
 
-function readBuildPassword() {
-  return resolvePassword();
+function readRunPassword() {
+  if (process.env.CLIENT_RUN_PASSWORD) return process.env.CLIENT_RUN_PASSWORD;
+  const file = path.join(root, "client-run-password.txt");
+  return fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() : "";
 }
 
-function writeLicense(runtimeDir, password = readBuildPassword()) {
+function writeLicense(runtimeDir, password = readRunPassword()) {
   if (!password) return false;
   const salt = crypto.randomBytes(16).toString("hex");
   fs.writeFileSync(path.join(runtimeDir, "license.json"), JSON.stringify({
@@ -91,7 +93,7 @@ cd /d "%~dp0"
   fs.writeFileSync(path.join(outputDir, "启动.bat"), winLauncher);
 }
 
-function writeClientReadme(outputDir, executableName, target, passwordEnabled) {
+function writeClientReadme(outputDir, executableName, target, runPasswordEnabled, payloadEnabled) {
   const checkCommand = target.includes("win")
     ? `${executableName}.bat --check-package`
     : `./${executableName} --check-package`;
@@ -106,7 +108,9 @@ function writeClientReadme(outputDir, executableName, target, passwordEnabled) {
 
 本目录的客户端已经带有 Node.js 运行时，客户不需要安装 Node.js。
 程序文件放在隐藏目录 ${protectedDirName}，客户通常只需要改 .env、bitbrowser.config.json、cards.txt 和 workflow.js.enc。
-${passwordEnabled ? "启动时会要求输入运行密码。" : "当前打包未设置运行密码；如需启用，请在打包前设置 CLIENT_RUN_PASSWORD 或创建 client-password.txt。"}
+${runPasswordEnabled ? "启动时会要求输入独立的运行授权密码。" : "当前壳未设置独立运行授权密码，启动时只会要求 workflow.js.enc 的流程解密密码。"}
+流程解密密码由 workflow.js.enc 生成时的 CLIENT_PAYLOAD_PASSWORD 决定，与壳的运行授权密码相互独立。
+${payloadEnabled ? "当前包已包含 workflow.js.enc。" : "当前包是壳包，尚未包含 workflow.js.enc；请把本地生成的文件放在本目录。"}
 流程默认使用 BitBrowser，已登录的指纹窗口会直接进入 Checkout；未登录时才会使用邮箱验证码。
 后续流程更新只需替换根目录的 workflow.js.enc，不需要替换整个运行器目录。
 自检命令：${checkCommand}
@@ -132,7 +136,7 @@ function prepareConfig(outputDir) {
   }
 }
 
-function preparePayload(outputDir, password) {
+function preparePayload(outputDir, payloadPassword) {
   const destination = path.join(outputDir, "workflow.js.enc");
   const configuredPayload = process.env.CLIENT_PAYLOAD_FILE
     ? path.resolve(process.cwd(), process.env.CLIENT_PAYLOAD_FILE)
@@ -146,7 +150,7 @@ function preparePayload(outputDir, password) {
   if (!fs.existsSync(sourceFile)) {
     throw new Error(`找不到流程载荷或本地流程源文件。请先生成 workflow.js.enc，或设置 FLOW_SOURCE_FILE。当前源文件：${sourceFile}`);
   }
-  buildPayload(destination, password, sourceFile);
+  buildPayload(destination, payloadPassword, sourceFile);
   return true;
 }
 
@@ -180,14 +184,14 @@ function prepareEmbeddedBundle(outputDir, executableName, target) {
     recursive: true,
     filter: (source) => !source.includes(`${path.sep}@yao-pkg${path.sep}`),
   });
-  const password = readBuildPassword();
-  if (!password) throw new Error("客户运行器必须使用加密流程，请设置 CLIENT_RUN_PASSWORD 或 CLIENT_PAYLOAD_PASSWORD。");
-  const payloadEnabled = preparePayload(outputDir, password);
-  const passwordEnabled = writeLicense(protectedDir, password);
+  const runPassword = readRunPassword();
+  const payloadPassword = resolvePayloadPassword();
+  const payloadEnabled = preparePayload(outputDir, payloadPassword);
+  const runPasswordEnabled = writeLicense(protectedDir, runPassword);
   prepareConfig(outputDir);
   writeEmbeddedExecutable(outputDir, executableName);
   writeLaunchers(outputDir, executableName, target);
-  writeClientReadme(outputDir, executableName, target, passwordEnabled && payloadEnabled);
+  writeClientReadme(outputDir, executableName, target, runPasswordEnabled, payloadEnabled);
 }
 
 function preparePkgBundle(outputDir, executableName, target) {
@@ -201,13 +205,13 @@ function preparePkgBundle(outputDir, executableName, target) {
     "--compress", "GZip",
     "--no-signature",
   ], { cwd: root, stdio: "inherit" });
-  const password = readBuildPassword();
-  if (!password) throw new Error("客户运行器必须使用加密流程，请设置 CLIENT_RUN_PASSWORD 或 CLIENT_PAYLOAD_PASSWORD。");
-  const payloadEnabled = preparePayload(outputDir, password);
-  writeLicense(outputDir, password);
+  const runPassword = readRunPassword();
+  const payloadPassword = resolvePayloadPassword();
+  const payloadEnabled = preparePayload(outputDir, payloadPassword);
+  const runPasswordEnabled = writeLicense(outputDir, runPassword);
   prepareConfig(outputDir);
   writeLaunchers(outputDir, executableName, target);
-  writeClientReadme(outputDir, executableName, target, payloadEnabled);
+  writeClientReadme(outputDir, executableName, target, runPasswordEnabled, payloadEnabled);
   if (target.includes("win")) fs.renameSync(executablePath, `${executablePath}.exe`);
 }
 

@@ -7,13 +7,18 @@ const { encryptPayload } = require("../payload-crypto");
 
 const root = path.resolve(__dirname, "..");
 
-function resolvePassword(value = "") {
+function resolvePayloadPassword(value = "") {
   if (value) return String(value);
   if (process.env.CLIENT_PAYLOAD_PASSWORD) return process.env.CLIENT_PAYLOAD_PASSWORD;
+  const payloadPasswordFile = path.join(root, "payload-password.txt");
+  if (fs.existsSync(payloadPasswordFile)) return fs.readFileSync(payloadPasswordFile, "utf8").trim();
+  // Backward compatibility for older local builds that used one password.
   if (process.env.CLIENT_RUN_PASSWORD) return process.env.CLIENT_RUN_PASSWORD;
   const file = path.join(root, "client-password.txt");
   return fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() : "";
 }
+
+const resolvePassword = resolvePayloadPassword;
 
 function resolveSourceFile(value = "") {
   const configured = value || process.env.FLOW_SOURCE_FILE || path.join(root, "browser-flow.js");
@@ -22,7 +27,7 @@ function resolveSourceFile(value = "") {
 
 function buildPayload(outputFile, password = resolvePassword(), sourceFile = resolveSourceFile()) {
   if (!password) {
-    throw new Error("构建加密流程需要密码，请设置 CLIENT_PAYLOAD_PASSWORD、CLIENT_RUN_PASSWORD 或 client-password.txt。");
+    throw new Error("构建加密流程需要密码，请设置 CLIENT_PAYLOAD_PASSWORD、payload-password.txt 或 client-password.txt。");
   }
   if (!fs.existsSync(sourceFile)) {
     throw new Error(`找不到流程源文件：${sourceFile}。请设置 FLOW_SOURCE_FILE 指向本地流程文件。`);
@@ -50,4 +55,4 @@ if (require.main === module) {
   console.log(`已生成：${buildPayload(output, resolvePassword(), resolveSourceFile(source))}`);
 }
 
-module.exports = { buildPayload, resolvePassword, resolveSourceFile };
+module.exports = { buildPayload, resolvePassword, resolvePayloadPassword, resolveSourceFile };

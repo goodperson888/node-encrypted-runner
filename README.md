@@ -21,10 +21,10 @@ npx playwright install chromium
 
 ```sh
 npm install
-CLIENT_RUN_PASSWORD=你的运行密码 npm run build:client:mac
+CLIENT_PAYLOAD_PASSWORD='流程文件密码' npm run build:client:mac
 ```
 
-也可以在项目根目录创建被 `.gitignore` 忽略的 `client-password.txt`，写入运行密码后直接执行 `npm run build:client:mac`。
+如果希望壳本身还有独立的启动授权密码，再额外设置 `CLIENT_RUN_PASSWORD`；不设置时客户只需输入流程文件密码。也可以在项目根目录创建被 `.gitignore` 忽略的 `payload-password.txt`，写入流程文件密码后直接执行打包。
 
 生成的 macOS ARM 客户端在 `dist/weee-flow-macos-arm64.zip`。解压后客户只需要：
 
@@ -43,13 +43,13 @@ Windows 版本需要在 Windows x64 打包机执行 `npm run build:client:win`�
 
 仓库中的 `.github/workflows/build-windows.yml` 只有 `workflow_dispatch` 触发器，不会在 push、提交或 Pull Request 时自动打包。仓库只保存运行器壳；在仓库页面点击 **Actions → 手动构建 Windows 客户端 → Run workflow**，完成后从该次运行的 Artifacts 下载 Windows 壳包。
 
-第一次使用前，在仓库 **Settings → Secrets and variables → Actions** 添加：
+如果需要给壳增加独立的启动授权密码，可以在仓库 **Settings → Secrets and variables → Actions** 添加：
 
 ```text
 CLIENT_RUN_PASSWORD=客户运行器密码
 ```
 
-这个密码用于生成隐藏的 `license.json`。不要把密码写进仓库文件。Windows 工作流默认只构建壳，不包含流程载荷。
+这个密码只用于生成隐藏的 `license.json`，和流程文件的解密密码相互独立；不设置也可以构建没有独立授权密码的壳。不要把密码写进仓库文件。Windows 工作流默认只构建壳，不包含流程载荷。
 
 ## 本地生成加密流程文件
 
@@ -57,18 +57,18 @@ CLIENT_RUN_PASSWORD=客户运行器密码
 
 ```sh
 FLOW_SOURCE_FILE=/你的本地路径/browser-flow.js \
-CLIENT_PAYLOAD_PASSWORD='和运行器相同的密码' \
+CLIENT_PAYLOAD_PASSWORD='你为流程文件设置的密码' \
 npm run build:payload -- /你的输出路径/workflow.js.enc
 ```
 
 如果流程文件和当前项目同目录，可以省略 `FLOW_SOURCE_FILE`：
 
 ```sh
-CLIENT_PAYLOAD_PASSWORD='和运行器相同的密码' \
+CLIENT_PAYLOAD_PASSWORD='你为流程文件设置的密码' \
 npm run build:payload -- workflow.js.enc
 ```
 
-把生成的 `workflow.js.enc` 放进 Windows 壳包根目录即可。运行器会在内存中解密并执行，不会在磁盘生成明文流程文件。后续流程更新只替换这个文件，不需要重新构建完整运行器包。
+把生成的 `workflow.js.enc` 放进 Windows 壳包根目录即可。运行器启动时会要求输入这里设置的流程密码；如果 `.env` 中配置了 `APP_PAYLOAD_PASSWORD`，则不会提示输入。运行器会在内存中解密并执行，不会在磁盘生成明文流程文件。后续流程更新只替换这个文件，不需要重新构建完整运行器包。
 
 这个方案能防止普通用户直接打开、复制源码，但无法防住有本机管理员权限并进行调试或内存提取的逆向分析。需要更强授权控制时，应把解密密钥放到服务端并按设备发放。
 
