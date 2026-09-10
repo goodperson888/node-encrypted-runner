@@ -36,7 +36,7 @@ CLIENT_PAYLOAD_PASSWORD='流程文件密码' npm run build:client:mac
 6. 双击 `启动.command`。
 7. 如果运行失败，查看 `logs/latest.log`；Windows 启动脚本会停在错误窗口，便于截图。
 
-Windows 版本需要在 Windows x64 打包机执行 `npm run build:client:win`，生成 `dist/weee-flow-win-x64.zip`，客户双击 `启动.bat`。压缩包中的客户端已经包含 Node.js 运行时；BitBrowser 本身仍需要客户安装并启动。默认使用 BitBrowser 时不需要额外下载 Playwright Chromium。
+Windows 版本需要在 Windows x64 打包机执行 `npm run build:client:win`，生成 `dist/weee-flow-win-x64.zip`，客户双击 `run.bat`。压缩包中的客户端已经包含 Node.js 运行时；BitBrowser 本身仍需要客户安装并启动。默认使用 BitBrowser 时不需要额外下载 Playwright Chromium。
 
 交付包根目录只暴露 `.env`、`bitbrowser.config.json`、`cards.txt`、启动脚本和说明文件。程序源码、依赖和内置 Node 运行时放在隐藏目录 `.weee-runtime`。交付前可以运行 `./weee-flow-macos-arm64 --check-package`，应输出 `portable: true`。不要把含有真实邮箱令牌或支付卡信息的本地 `.env` 直接发给客户；打包脚本会从 `.env.example` 生成空白模板。
 
@@ -85,7 +85,7 @@ npm run encrypt
 
 把生成的 `workflow.js.enc` 放进 Windows 壳包根目录即可。运行器启动时会要求输入这里设置的流程密码；如果 `.env` 中配置了 `APP_PAYLOAD_PASSWORD`，则不会提示输入。运行器会在内存中解密并执行，不会在磁盘生成明文流程文件。后续流程更新只替换这个文件，不需要重新构建完整运行器包。
 
-运行器默认把每次启动、普通输出、错误堆栈写入客户端根目录的 `logs/latest.log`。客户包构建时会预创建这个文件，运行器启动后会覆盖并写入本次运行内容；如果客户说“闪退”，先让客户打开这个文件或截图停留窗口。Windows 应从 `启动.bat` 启动；`weee-flow-win-x64.bat` 是被它调用的内部脚本。日志就在 `启动.bat` 同级目录的 `logs` 文件夹。
+运行器默认把每次启动、普通输出、错误堆栈写入客户端根目录的 `logs/latest.log`。客户包构建时会预创建这个文件，运行器启动后会覆盖并写入本次运行内容；如果客户说“闪退”，先让客户打开这个文件或截图停留窗口。Windows 应从 `run.bat` 启动；`启动.bat` 只是中文别名，`weee-flow-win-x64.bat` 是被它调用的内部脚本。日志就在 `run.bat` 同级目录的 `logs` 文件夹。
 
 这个方案能防止普通用户直接打开、复制源码，但无法防住有本机管理员权限并进行调试或内存提取的逆向分析。需要更强授权控制时，应把解密密钥放到服务端并按设备发放。
 

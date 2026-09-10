@@ -85,15 +85,16 @@ function writeEmbeddedExecutable(outputDir, executableName) {
     ? `@echo off
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
-echo [日志] 日志文件：logs\\latest.log
+set "APP_LOG_FILE=logs\\latest.log"
+echo Log file: logs\\latest.log
 set APP_SHELL=true
 "${protectedDirName}\\node\\node.exe" "${protectedDirName}\\app\\runner.js" %*
 set EXIT_CODE=%ERRORLEVEL%
-if "%EXIT_CODE%"=="0" exit /b 0
 echo.
-echo 程序运行失败，日志文件：
+echo Exit code: %EXIT_CODE%
+echo Log file:
 echo logs\\latest.log
-echo 请把该文件发给技术人员。
+if exist "logs\\latest.log" type "logs\\latest.log"
 pause
 exit /b %EXIT_CODE%
 `
@@ -129,17 +130,19 @@ exec "./${executableName}" "$@"
   const winLauncher = `@echo off
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
-echo [日志] 日志文件：logs\\latest.log
+set "APP_LOG_FILE=logs\\latest.log"
+echo Log file: logs\\latest.log
 ${windowsRunCommand}
 set EXIT_CODE=%ERRORLEVEL%
-if "%EXIT_CODE%"=="0" exit /b 0
 echo.
-echo 程序运行失败，日志文件：
+echo Exit code: %EXIT_CODE%
+echo Log file:
 echo logs\\latest.log
-echo 请把该文件发给技术人员。
+if exist "logs\\latest.log" type "logs\\latest.log"
 pause
 exit /b %EXIT_CODE%
 `;
+  fs.writeFileSync(path.join(outputDir, "run.bat"), winLauncher);
   fs.writeFileSync(path.join(outputDir, "启动.bat"), winLauncher);
 }
 
@@ -154,7 +157,7 @@ function writeClientReadme(outputDir, executableName, target, runPasswordEnabled
 3. 编辑 .env，填写 TEMP_MAIL_TOKEN；不要把令牌发给其他人。
 4. 将卡片逐行写入同级目录的 cards.txt，格式为 cardNumber|MM|YYYY。
 5. 如需代理，在 bitbrowser.config.json 的 proxyUrl 或 .env 的 BITBROWSER_PROXY_URL 填写 socks5h://用户名:密码@主机:端口。
-6. Windows 只双击“启动.bat”；“weee-flow-win-x64.bat”是内部运行脚本，不作为首选入口。
+6. Windows 优先双击 run.bat；启动.bat 是中文别名；weee-flow-win-x64.bat 是内部运行脚本，不作为首选入口。
 7. 先查看 client-build.txt 确认构建版本；如果运行失败，查看 logs/latest.log；Windows 会停在错误窗口，不会直接闪退。
 
 本目录的客户端已经带有 Node.js 运行时，客户不需要安装 Node.js。
