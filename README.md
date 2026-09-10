@@ -42,7 +42,13 @@ Windows 版本需要在 Windows x64 打包机执行 `npm run build:client:win`�
 
 ## GitHub 手动构建 Windows 包
 
-仓库中的 `.github/workflows/build-windows.yml` 只有 `workflow_dispatch` 触发器，不会在 push、提交或 Pull Request 时自动打包。仓库只保存运行器壳；在仓库页面点击 **Actions → 手动构建 Windows 客户端 → Run workflow**，完成后从该次运行的 Artifacts 下载 Windows 壳包。
+仓库中的 `.github/workflows/build-windows.yml` 只有 `workflow_dispatch` 触发器，不会在 push、提交或 Pull Request 时自动打包。仓库只保存运行器壳；在仓库页面点击 **Actions → 手动构建 Windows 客户端 → Run workflow**。构建完成后工作流会同时上传 Artifact，并发布 GitHub Release。
+
+客户可以直接使用这个固定下载地址获取最新版 Windows 壳包：
+
+https://github.com/goodperson888/node-encrypted-runner/releases/latest/download/weee-flow-win-x64.zip
+
+每次成功构建都会更新 `latest` Release。下载 ZIP 后，把本地生成的 `workflow.js.enc` 放到解压后的客户端根目录，再交付给客户。
 
 如果需要给壳增加独立的启动授权密码，可以在仓库 **Settings → Secrets and variables → Actions** 添加：
 

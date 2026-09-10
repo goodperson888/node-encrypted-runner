@@ -10,7 +10,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -44,3 +44,20 @@ jobs:
           path: dist/weee-flow-win-x64.zip
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_TAG: client-win-${{ github.run_number }}-${{ github.run_attempt }}
+        run: |
+          gh release create "$env:RELEASE_TAG" `
+            "dist/weee-flow-win-x64.zip" `
+            --repo "$env:REPOSITORY" `
+            --target "${{ github.sha }}" `
+            --title "Windows 客户端 $env:RELEASE_TAG" `
+            --notes "手动构建的 Windows 客户端壳包。请把本地生成的 workflow.js.enc 放到解压后的客户端根目录。"
+          $downloadUrl = "https://github.com/$env:REPOSITORY/releases/latest/download/weee-flow-win-x64.zip"
+          "## 客户下载地址" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          $downloadUrl | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
