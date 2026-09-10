@@ -85,26 +85,26 @@ function writeEmbeddedExecutable(outputDir, executableName) {
     ? `@echo off
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
-if not exist "%~dp0${protectedDirName}\\node\\node.exe" goto missing_node
-if not exist "%~dp0${protectedDirName}\\app\\runner.js" goto missing_runner
-echo [日志] 日志文件：%~dp0logs\\latest.log
+if not exist "${protectedDirName}\\node\\node.exe" goto missing_node
+if not exist "${protectedDirName}\\app\\runner.js" goto missing_runner
+echo [日志] 日志文件：logs\\latest.log
 set APP_SHELL=true
-"%~dp0${protectedDirName}\\node\\node.exe" "%~dp0${protectedDirName}\\app\\runner.js" %*
+"${protectedDirName}\\node\\node.exe" "${protectedDirName}\\app\\runner.js" %*
 set EXIT_CODE=%ERRORLEVEL%
 if "%EXIT_CODE%"=="0" goto inner_done
 echo.
 echo 程序运行失败，日志文件：
-echo %~dp0logs\\latest.log
+echo logs\\latest.log
 echo 请把该文件发给技术人员。
 pause
 :inner_done
 exit /b %EXIT_CODE%
 :missing_node
-echo 找不到内置 Node.js，日志文件：%~dp0logs\\latest.log
+echo 找不到内置 Node.js，日志文件：logs\\latest.log
 pause
 exit /b 2
 :missing_runner
-echo 找不到运行器文件，日志文件：%~dp0logs\\latest.log
+echo 找不到运行器文件，日志文件：logs\\latest.log
 pause
 exit /b 3
 `
@@ -140,20 +140,20 @@ exec "./${executableName}" "$@"
   const winLauncher = `@echo off
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
-if not exist "%~dp0${windowsTarget}" goto missing_target
-echo [日志] 日志文件：%~dp0logs\\latest.log
+if not exist "${windowsTarget}" goto missing_target
+echo [日志] 日志文件：logs\\latest.log
 ${windowsRunCommand}
 set EXIT_CODE=%ERRORLEVEL%
 if "%EXIT_CODE%"=="0" goto outer_done
 echo.
 echo 程序运行失败，日志文件：
-echo %~dp0logs\\latest.log
+echo logs\\latest.log
 echo 请把该文件发给技术人员。
 pause
 :outer_done
 exit /b %EXIT_CODE%
 :missing_target
-echo 找不到客户端启动文件，日志文件：%~dp0logs\\latest.log
+echo 找不到客户端启动文件，日志文件：logs\\latest.log
 pause
 exit /b 4
 `;
