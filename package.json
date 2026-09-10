@@ -9,6 +9,7 @@
     "check:mail": "node runner.js --check-mail-api",
     "test": "node --test *.test.js",
     "build:payload": "node scripts/build-payload.js",
+    "encrypt": "node scripts/build-payload.js",
     "build:client": "node scripts/build-client.js",
     "build:client:mac": "CLIENT_TARGETS=node20-macos-arm64 npm run build:client",
     "build:client:win": "CLIENT_TARGETS=node20-win-x64 npm run build:client"

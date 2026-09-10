@@ -68,6 +68,14 @@ CLIENT_PAYLOAD_PASSWORD='你为流程文件设置的密码' \
 npm run build:payload -- workflow.js.enc
 ```
 
+为了日常更新更简单，可以在项目根目录创建被 `.gitignore` 忽略的 `payload-password.txt`，写入流程密码。之后每次只执行：
+
+```sh
+npm run encrypt
+```
+
+这个快捷命令默认读取同目录的 `browser-flow.js`，并生成同目录的 `workflow.js.enc`。生成后把该文件替换到客户壳包根目录即可。
+
 把生成的 `workflow.js.enc` 放进 Windows 壳包根目录即可。运行器启动时会要求输入这里设置的流程密码；如果 `.env` 中配置了 `APP_PAYLOAD_PASSWORD`，则不会提示输入。运行器会在内存中解密并执行，不会在磁盘生成明文流程文件。后续流程更新只替换这个文件，不需要重新构建完整运行器包。
 
 这个方案能防止普通用户直接打开、复制源码，但无法防住有本机管理员权限并进行调试或内存提取的逆向分析。需要更强授权控制时，应把解密密钥放到服务端并按设备发放。
