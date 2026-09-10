@@ -5,7 +5,7 @@
     "7deac3de717c442caad015f63a436f73"
   ],
   "queue": true,
-  "parallel": false,
+  "parallel": true,
   "closeOnExit": false,
   "apiTimeoutMs": 15000,
   "proxyUrl": ""

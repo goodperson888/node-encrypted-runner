@@ -111,7 +111,7 @@ BITBROWSER_CLOSE_ON_EXIT=false
 }
 ```
 
-`browserIds` 填多个 ID 时，默认按顺序复用窗口；设置 `parallel: true` 或 `BROWSER_PARALLEL=true` 会并行运行多个窗口。`BROWSER_DATA_FILE` 的每一行也可以指定 `"browserId"`，该行会固定使用对应的指纹窗口。
+`browserIds` 填多个 ID 时，设置 `parallel: true` 或 `BROWSER_PARALLEL=true` 会同时运行多个窗口；保持 `false` 则按窗口顺序运行。支付模式下，程序会在同一次启动内建立共享卡片队列，各窗口按队列串行领取 `cards.txt` 的行号，已经领取的行不会再次分配；绑卡频繁限制时，未完成的当前行会重新排到队尾重试。`BROWSER_DATA_FILE` 的每一行也可以指定 `"browserId"`，该行会固定使用对应的指纹窗口。要让多个窗口处理不同卡片，使用同一个共享的 `cards.txt`，不要在每行 `payment` 字段中重复写同一张卡。
 
 客户如果要使用代理，可在 `bitbrowser.config.json` 的 `proxyUrl` 或 `.env` 的 `BITBROWSER_PROXY_URL` 填写完整 URL，例如 `socks5h://用户名:密码@主机:端口`。程序会在启动窗口前调用 BitBrowser 的代理更新接口；`socks5h` 会映射为 BitBrowser 支持的 `socks5`。
 

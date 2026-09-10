@@ -127,7 +127,7 @@ async function loadPayloadModule(password) {
 const runPassword = await enforceRunPassword();
 const payloadFile = resolvePayloadFile();
 if (fs.existsSync(payloadFile)) {
-  const payloadPassword = runPassword || await askPayloadPassword();
+  const payloadPassword = await askPayloadPassword();
   const workflow = await loadPayloadModule(payloadPassword);
   if (!workflow || typeof workflow.main !== "function") {
     throw new Error("加密流程文件没有导出 main 函数。");
