@@ -7,7 +7,7 @@
     "start": "node runner.js",
     "run": "node runner.js",
     "check:mail": "node runner.js --check-mail-api",
-    "test": "node --test *.test.js",
+    "test": "node --test",
     "build:payload": "node scripts/build-payload.js",
     "encrypt": "node scripts/build-payload.js",
     "build:client": "node scripts/build-client.js",
