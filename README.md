@@ -85,7 +85,7 @@ npm run encrypt
 
 把生成的 `workflow.js.enc` 放进 Windows 壳包根目录即可。运行器启动时会要求输入这里设置的流程密码；如果 `.env` 中配置了 `APP_PAYLOAD_PASSWORD`，则不会提示输入。运行器会在内存中解密并执行，不会在磁盘生成明文流程文件。后续流程更新只替换这个文件，不需要重新构建完整运行器包。
 
-运行器默认把每次启动、普通输出、错误堆栈写入客户端根目录的 `logs/latest.log`。Windows 启动脚本会在启动前自动创建 `logs` 文件夹并打印完整路径；如果客户说“闪退”，先让客户打开这个文件或截图停留窗口。
+运行器默认把每次启动、普通输出、错误堆栈写入客户端根目录的 `logs/latest.log`。Windows 启动脚本会在调用运行器前先创建 `logs/latest.log`，并把启动阶段的错误输出追加进去；如果客户说“闪退”，先让客户打开这个文件或截图停留窗口。必须从 `启动.bat` 启动，日志就在 `启动.bat` 同级目录的 `logs` 文件夹。
 
 这个方案能防止普通用户直接打开、复制源码，但无法防住有本机管理员权限并进行调试或内存提取的逆向分析。需要更强授权控制时，应把解密密钥放到服务端并按设备发放。
 
@@ -98,7 +98,7 @@ BROWSER_HEADLESS=false npm start
 
 `check:mail` 生成一个随机地址并读取收件箱。正常情况下发出一次 API 请求，不打开 Weee、不发送邮件。
 
-主流程直接打开 Weee 购物车，点击第一个 `.w-9` 加入推荐商品，再点击 `.h-1500` Checkout。Weee 偶尔会同时挂载两个登录弹窗：程序会判断邮箱输入框是否真正可交互；如果上层弹窗遮挡第一个表单，会先关闭上层弹窗，再填写第一个表单并点击箭头发送验证码。随后通过 `type=receive` 轮询新收到的 Weee 邮件并提取验证码，按四个单字符输入框回填后进入订单结算页。结算页后续会打开支付方式和 Braintree 表单；`prepare` 模式停在支付表单，`payment` 模式按同级目录 `cards.txt` 逐行读取卡片并保存。每行格式为 `cardNumber|MM|YYYY`，有效期输入框填入 `MMYY`，CVV 和 Postal Code 使用 `.env` 中固定的 `PAYMENT_CVV`、`PAYMENT_POSTAL_CODE`。保存后监听 `https://api.sayweee.net/ec/payment/card/braintree/profile/attach/v3`，如果返回 `PY10122` 或 “The number of attempts to bind the card is too frequent. Please try again after 24 hours.”，程序会清理缓存、刷新页面、换临时邮箱，并从当前卡片行继续重试。没有频繁限制时，会比较 `div[data-testid="wid-checkout-payment-list-content-wrapper-card-item-text"]` 的数量，只有数量增加才把原始行写入 `saved-cards.txt`。每个临时邮箱最多保存三张卡，之后清理窗口缓存、刷新页面并换用新邮箱继续。流程不会自动提交最终订单。
+主流程直接打开 Weee 购物车，点击第一个 `.w-9` 加入推荐商品，再点击 `.h-1500` Checkout。Weee 偶尔会同时挂载两个登录弹窗：程序会判断邮箱输入框是否真正可交互；如果上层弹窗遮挡第一个表单，会先关闭上层弹窗，再填写第一个表单并点击箭头发送验证码。随后通过 `type=receive` 轮询新收到的 Weee 邮件并提取验证码，按四个单字符输入框回填后进入订单结算页。结算页后续会打开支付方式和 Braintree 表单；`prepare` 模式停在支付表单，`payment` 模式按同级目录 `cards.txt` 逐行读取卡片并保存。每行格式为 `cardNumber|MM|YYYY`，有效期输入框填入 `MMYY`，CVV 和 Postal Code 使用 `.env` 中固定的 `PAYMENT_CVV`、`PAYMENT_POSTAL_CODE`。保存后监听 `https://api.sayweee.net/ec/payment/card/braintree/profile/attach/v3`，如果返回 `PY10122` 或 “The number of attempts to bind the card is too frequent. Please try again after 24 hours.”，程序会清理缓存、刷新页面、换临时邮箱，并从当前卡片行继续重试。如果返回 `PY10114`，当前行不写入成功记录，恢复卡片列表后立即尝试下一行。进入下一行前会从 `cards.txt` 删除上一行的原始记录；如果当前行触发限流重试，则暂不删除，换邮箱后继续重试。没有频繁限制时，会比较 `div[data-testid="wid-checkout-payment-list-content-wrapper-card-item-text"]` 的数量，只有数量增加才把原始行写入 `saved-cards.txt`。程序下次启动会读取 `saved-cards.txt` 并跳过已经记录成功的原始行，从未完成的行继续；如果需要全量重跑，删除该文件即可。每个临时邮箱最多保存三张卡，之后清理窗口缓存、刷新页面并换用新邮箱继续。流程不会自动提交最终订单。
 
 ## 比特浏览器与多窗口
 

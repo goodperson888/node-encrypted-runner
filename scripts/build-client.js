@@ -58,15 +58,20 @@ function writeEmbeddedExecutable(outputDir, executableName) {
     ? `@echo off
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
-if not exist "%~dp0logs" mkdir "%~dp0logs" >nul 2>&1
-echo [日志] 日志文件：%~dp0logs\\latest.log
+set "LOG_DIR=%~dp0logs"
+set "LOG_FILE=%~dp0logs\\latest.log"
+if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
+if not exist "%LOG_FILE%" echo [launcher] 启动器已创建日志文件 > "%LOG_FILE%"
+>>"%LOG_FILE%" echo [launcher] APP_HOME=%APP_HOME%
+echo [日志] 日志文件：%LOG_FILE%
 set APP_SHELL=true
-"%~dp0${protectedDirName}\\node\\node.exe" "%~dp0${protectedDirName}\\app\\runner.js" %*
+"%~dp0${protectedDirName}\\node\\node.exe" "%~dp0${protectedDirName}\\app\\runner.js" %* 2>>"%LOG_FILE%"
 set EXIT_CODE=%ERRORLEVEL%
+>>"%LOG_FILE%" echo [launcher] exit_code=%EXIT_CODE%
 if not "%EXIT_CODE%"=="0" (
   echo.
   echo 程序运行失败，日志文件：
-  echo %~dp0logs\\latest.log
+  echo %LOG_FILE%
   echo 请把该文件发给技术人员。
   pause
 )
@@ -104,14 +109,19 @@ exec "./${executableName}" "$@"
   const winLauncher = `@echo off
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
-if not exist "%~dp0logs" mkdir "%~dp0logs" >nul 2>&1
-echo [日志] 日志文件：%~dp0logs\\latest.log
+set "LOG_DIR=%~dp0logs"
+set "LOG_FILE=%~dp0logs\\latest.log"
+if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
+if not exist "%LOG_FILE%" echo [launcher] 启动器已创建日志文件 > "%LOG_FILE%"
+>>"%LOG_FILE%" echo [launcher] APP_HOME=%APP_HOME%
+echo [日志] 日志文件：%LOG_FILE%
 ${windowsRunCommand}
 set EXIT_CODE=%ERRORLEVEL%
+>>"%LOG_FILE%" echo [launcher] exit_code=%EXIT_CODE%
 if not "%EXIT_CODE%"=="0" (
   echo.
   echo 程序运行失败，日志文件：
-  echo %~dp0logs\\latest.log
+  echo %LOG_FILE%
   echo 请把该文件发给技术人员。
   pause
 )
