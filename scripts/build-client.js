@@ -53,6 +53,33 @@ function writeLicense(runtimeDir, password = readRunPassword()) {
   return true;
 }
 
+function writeBuildInfo(outputDir, target) {
+  const buildId = String(
+    process.env.CLIENT_BUILD_ID ||
+    process.env.GITHUB_RUN_ID ||
+    `local-${Date.now()}`,
+  );
+  const commit = String(process.env.CLIENT_BUILD_COMMIT || process.env.GITHUB_SHA || "unknown");
+  const builtAt = String(process.env.CLIENT_BUILD_TIME_UTC || new Date().toISOString());
+  fs.writeFileSync(path.join(outputDir, "client-build.txt"), [
+    `build_id=${buildId}`,
+    `target=${target}`,
+    `commit=${commit}`,
+    `built_at_utc=${builtAt}`,
+    "",
+  ].join("\n"), { encoding: "utf8" });
+  const logsDir = path.join(outputDir, "logs");
+  fs.mkdirSync(logsDir, { recursive: true });
+  fs.writeFileSync(path.join(logsDir, "latest.log"), [
+    "[launcher] 日志文件已随客户端预创建。",
+    `build_id=${buildId}`,
+    `target=${target}`,
+    `commit=${commit}`,
+    `built_at_utc=${builtAt}`,
+    "",
+  ].join("\n"), { encoding: "utf8" });
+}
+
 function writeEmbeddedExecutable(outputDir, executableName) {
   const wrapper = process.platform === "win32"
     ? `@echo off
@@ -60,9 +87,11 @@ cd /d "%~dp0"
 set "APP_HOME=%~dp0"
 set "LOG_DIR=%~dp0logs"
 set "LOG_FILE=%~dp0logs\\latest.log"
+set "APP_LOG_FILE=%LOG_FILE%"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
 if not exist "%LOG_FILE%" echo [launcher] 启动器已创建日志文件 > "%LOG_FILE%"
 >>"%LOG_FILE%" echo [launcher] APP_HOME=%APP_HOME%
+if exist "%~dp0client-build.txt" type "%~dp0client-build.txt" >>"%LOG_FILE%"
 echo [日志] 日志文件：%LOG_FILE%
 set APP_SHELL=true
 "%~dp0${protectedDirName}\\node\\node.exe" "%~dp0${protectedDirName}\\app\\runner.js" %* 2>>"%LOG_FILE%"
@@ -111,9 +140,11 @@ cd /d "%~dp0"
 set "APP_HOME=%~dp0"
 set "LOG_DIR=%~dp0logs"
 set "LOG_FILE=%~dp0logs\\latest.log"
+set "APP_LOG_FILE=%LOG_FILE%"
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
 if not exist "%LOG_FILE%" echo [launcher] 启动器已创建日志文件 > "%LOG_FILE%"
 >>"%LOG_FILE%" echo [launcher] APP_HOME=%APP_HOME%
+if exist "%~dp0client-build.txt" type "%~dp0client-build.txt" >>"%LOG_FILE%"
 echo [日志] 日志文件：%LOG_FILE%
 ${windowsRunCommand}
 set EXIT_CODE=%ERRORLEVEL%
@@ -142,7 +173,7 @@ function writeClientReadme(outputDir, executableName, target, runPasswordEnabled
 4. 将卡片逐行写入同级目录的 cards.txt，格式为 cardNumber|MM|YYYY。
 5. 如需代理，在 bitbrowser.config.json 的 proxyUrl 或 .env 的 BITBROWSER_PROXY_URL 填写 socks5h://用户名:密码@主机:端口。
 6. 双击 启动.command（macOS）或 启动.bat（Windows）。
-7. 如果运行失败，查看 logs/latest.log；Windows 会停在错误窗口，不会直接闪退。
+7. 先查看 client-build.txt 确认构建版本；如果运行失败，查看 logs/latest.log；Windows 会停在错误窗口，不会直接闪退。
 
 本目录的客户端已经带有 Node.js 运行时，客户不需要安装 Node.js。
 程序文件放在隐藏目录 ${protectedDirName}，客户通常只需要改 .env、bitbrowser.config.json、cards.txt 和 workflow.js.enc。
@@ -275,6 +306,7 @@ function main() {
     const executableName = `weee-flow-${label}`;
     fs.rmSync(outputDir, { recursive: true, force: true });
     fs.mkdirSync(outputDir, { recursive: true });
+    writeBuildInfo(outputDir, target);
     if (packager === "pkg") {
       preparePkgBundle(outputDir, executableName, target);
     } else if (packager === "embedded") {

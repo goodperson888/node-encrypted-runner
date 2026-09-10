@@ -35,6 +35,9 @@ jobs:
         env:
           CLIENT_RUN_PASSWORD: ${{ secrets.CLIENT_RUN_PASSWORD }}
           CLIENT_SKIP_PAYLOAD: "true"
+          CLIENT_BUILD_ID: client-win-${{ github.run_number }}-${{ github.run_attempt }}
+          CLIENT_BUILD_COMMIT: ${{ github.sha }}
+          CLIENT_BUILD_TIME_UTC: ${{ github.run_started_at }}
         run: npm run build:client:win
 
       - name: Upload client zip
