@@ -83,42 +83,30 @@ function writeBuildInfo(outputDir, target) {
 function writeEmbeddedExecutable(outputDir, executableName) {
   const wrapper = process.platform === "win32"
     ? `@echo off
-setlocal EnableExtensions
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
-set "LOG_DIR=%~dp0logs"
-set "LOG_FILE=%~dp0logs\\latest.log"
-set "APP_LOG_FILE=%LOG_FILE%"
-if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
-if not exist "%LOG_FILE%" echo [launcher] 启动器已创建日志文件 > "%LOG_FILE%"
->>"%LOG_FILE%" echo [launcher] APP_HOME=%APP_HOME%
-if exist "%~dp0client-build.txt" type "%~dp0client-build.txt" >>"%LOG_FILE%"
->>"%LOG_FILE%" echo [launcher] inner_runner_start=%~dp0${protectedDirName}\\app\\runner.js
-if not exist "%~dp0${protectedDirName}\\node\\node.exe" (
-  >>"%LOG_FILE%" echo [launcher] ERROR missing_node=%~dp0${protectedDirName}\\node\\node.exe
-  echo 找不到内置 Node.js，日志文件：%LOG_FILE%
-  pause
-  exit /b 2
-)
-if not exist "%~dp0${protectedDirName}\\app\\runner.js" (
-  >>"%LOG_FILE%" echo [launcher] ERROR missing_runner=%~dp0${protectedDirName}\\app\\runner.js
-  echo 找不到运行器文件，日志文件：%LOG_FILE%
-  pause
-  exit /b 3
-)
-echo [日志] 日志文件：%LOG_FILE%
+if not exist "%~dp0${protectedDirName}\\node\\node.exe" goto missing_node
+if not exist "%~dp0${protectedDirName}\\app\\runner.js" goto missing_runner
+echo [日志] 日志文件：%~dp0logs\\latest.log
 set APP_SHELL=true
-"%~dp0${protectedDirName}\\node\\node.exe" "%~dp0${protectedDirName}\\app\\runner.js" %* 2>>"%LOG_FILE%"
+"%~dp0${protectedDirName}\\node\\node.exe" "%~dp0${protectedDirName}\\app\\runner.js" %*
 set EXIT_CODE=%ERRORLEVEL%
->>"%LOG_FILE%" echo [launcher] exit_code=%EXIT_CODE%
-if not "%EXIT_CODE%"=="0" (
-  echo.
-  echo 程序运行失败，日志文件：
-  echo %LOG_FILE%
-  echo 请把该文件发给技术人员。
-  pause
-)
+if "%EXIT_CODE%"=="0" goto inner_done
+echo.
+echo 程序运行失败，日志文件：
+echo %~dp0logs\\latest.log
+echo 请把该文件发给技术人员。
+pause
+:inner_done
 exit /b %EXIT_CODE%
+:missing_node
+echo 找不到内置 Node.js，日志文件：%~dp0logs\\latest.log
+pause
+exit /b 2
+:missing_runner
+echo 找不到运行器文件，日志文件：%~dp0logs\\latest.log
+pause
+exit /b 3
 `
     : `#!/bin/bash
 set -e
@@ -150,35 +138,24 @@ exec "./${executableName}" "$@"
     ? `call "%~dp0${windowsTarget}" %*`
     : `"%~dp0${windowsTarget}" %*`;
   const winLauncher = `@echo off
-setlocal EnableExtensions
 cd /d "%~dp0"
 set "APP_HOME=%~dp0"
-set "LOG_DIR=%~dp0logs"
-set "LOG_FILE=%~dp0logs\\latest.log"
-set "APP_LOG_FILE=%LOG_FILE%"
-if not exist "%LOG_DIR%" mkdir "%LOG_DIR%" >nul 2>&1
-if not exist "%LOG_FILE%" echo [launcher] 启动器已创建日志文件 > "%LOG_FILE%"
->>"%LOG_FILE%" echo [launcher] APP_HOME=%APP_HOME%
-if exist "%~dp0client-build.txt" type "%~dp0client-build.txt" >>"%LOG_FILE%"
->>"%LOG_FILE%" echo [launcher] outer_launcher_start=%~dp0${windowsTarget}
-if not exist "%~dp0${windowsTarget}" (
-  >>"%LOG_FILE%" echo [launcher] ERROR missing_target=%~dp0${windowsTarget}
-  echo 找不到客户端启动文件，日志文件：%LOG_FILE%
-  pause
-  exit /b 4
-)
-echo [日志] 日志文件：%LOG_FILE%
+if not exist "%~dp0${windowsTarget}" goto missing_target
+echo [日志] 日志文件：%~dp0logs\\latest.log
 ${windowsRunCommand}
 set EXIT_CODE=%ERRORLEVEL%
->>"%LOG_FILE%" echo [launcher] exit_code=%EXIT_CODE%
-if not "%EXIT_CODE%"=="0" (
-  echo.
-  echo 程序运行失败，日志文件：
-  echo %LOG_FILE%
-  echo 请把该文件发给技术人员。
-  pause
-)
+if "%EXIT_CODE%"=="0" goto outer_done
+echo.
+echo 程序运行失败，日志文件：
+echo %~dp0logs\\latest.log
+echo 请把该文件发给技术人员。
+pause
+:outer_done
 exit /b %EXIT_CODE%
+:missing_target
+echo 找不到客户端启动文件，日志文件：%~dp0logs\\latest.log
+pause
+exit /b 4
 `;
   fs.writeFileSync(path.join(outputDir, "启动.bat"), winLauncher);
 }
@@ -194,7 +171,7 @@ function writeClientReadme(outputDir, executableName, target, runPasswordEnabled
 3. 编辑 .env，填写 TEMP_MAIL_TOKEN；不要把令牌发给其他人。
 4. 将卡片逐行写入同级目录的 cards.txt，格式为 cardNumber|MM|YYYY。
 5. 如需代理，在 bitbrowser.config.json 的 proxyUrl 或 .env 的 BITBROWSER_PROXY_URL 填写 socks5h://用户名:密码@主机:端口。
-6. 双击 启动.command（macOS）或 启动.bat（Windows）。
+6. Windows 只双击“启动.bat”；“weee-flow-win-x64.bat”是内部运行脚本，不作为首选入口。
 7. 先查看 client-build.txt 确认构建版本；如果运行失败，查看 logs/latest.log；Windows 会停在错误窗口，不会直接闪退。
 
 本目录的客户端已经带有 Node.js 运行时，客户不需要安装 Node.js。
