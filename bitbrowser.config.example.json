@@ -8,6 +8,8 @@
   "parallel": true,
   "closeOnExit": false,
   "apiTimeoutMs": 15000,
+  "minRequestIntervalMs": 150,
+  "rateLimitRetries": 5,
   "apiToken": "",
   "proxyUrl": "",
   "proxyStrict": false

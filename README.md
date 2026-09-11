@@ -124,12 +124,14 @@ BITBROWSER_CLOSE_ON_EXIT=false
   "queue": false,
   "parallel": false,
   "closeOnExit": false,
+  "minRequestIntervalMs": 150,
+  "rateLimitRetries": 5,
   "apiToken": "",
   "proxyUrl": ""
 }
 ```
 
-`browserIds` 填多个 ID 时，设置 `parallel: true` 或 `BROWSER_PARALLEL=true` 会同时运行多个窗口；保持 `false` 则按窗口顺序运行。支付模式下，程序会在同一次启动内建立共享卡片队列，各窗口按队列串行领取 `cards.txt` 的行号，已经领取的行不会再次分配；绑卡频繁限制时，未完成的当前行会重新排到队尾重试。`BROWSER_DATA_FILE` 的每一行也可以指定 `"browserId"`，该行会固定使用对应的指纹窗口。要让多个窗口处理不同卡片，使用同一个共享的 `cards.txt`，不要在每行 `payment` 字段中重复写同一张卡。
+`browserIds` 填多个 ID 时，设置 `parallel: true` 或 `BROWSER_PARALLEL=true` 会同时运行多个窗口；保持 `false` 则按窗口顺序运行。BitBrowser Local API 会全局限速，默认每 150ms 最多发起一个本地接口请求，并在返回“请求太过频繁”时自动重试；窗口很多时可把 `minRequestIntervalMs` 或 `BITBROWSER_MIN_REQUEST_INTERVAL_MS` 调到 300。支付模式下，程序会在同一次启动内建立共享卡片队列，各窗口按队列串行领取 `cards.txt` 的行号，已经领取的行不会再次分配；绑卡频繁限制时，未完成的当前行会重新排到队尾重试。`BROWSER_DATA_FILE` 的每一行也可以指定 `"browserId"`，该行会固定使用对应的指纹窗口。要让多个窗口处理不同卡片，使用同一个共享的 `cards.txt`，不要在每行 `payment` 字段中重复写同一张卡。
 
 每个窗口都会生成独立的随机邮箱地址，验证码 API 请求始终带对应的完整邮箱地址，因此窗口之间不会互相读取验证码。进程内的 `receive` 请求还会自动错开，降低多个窗口同时轮询触发邮箱服务商限流的概率。并行模式会拒绝重复使用同一个 BitBrowser ID；如果 `BROWSER_DATA_FILE` 行数超过窗口数，必须为每行配置唯一的 `browserId`，否则程序会在启动时直接提示配置冲突。
 
@@ -166,6 +168,8 @@ API 请求使用一个完整邮箱地址，例如 `aahd1234@drime.space`。邮�
 | BITBROWSER_BROWSER_IDS | 空 | 一个或多个指纹浏览器 ID，逗号或空格分隔 |
 | BITBROWSER_QUEUE | false | true 时给 `/browser/open` 传队列参数；默认不传，兼容 7.1.4 |
 | BITBROWSER_CLOSE_ON_EXIT | false | 流程结束后是否调用 `/browser/close` 关闭窗口 |
+| BITBROWSER_MIN_REQUEST_INTERVAL_MS | 150 | 多窗口并行时 BitBrowser Local API 请求之间的最小间隔 |
+| BITBROWSER_RATE_LIMIT_RETRIES | 5 | BitBrowser 返回请求频繁时的自动重试次数 |
 | BITBROWSER_API_TOKEN | 空 | BitBrowser 开启 Local API Token 鉴权时填写 |
 | BITBROWSER_PROXY_URL | 空 | 可选代理 URL，例如 `socks5h://user:password@host:port` |
 | BITBROWSER_PROXY_STRICT | false | true 时代理 API 更新失败就停止；false 时继续使用窗口已有代理 |
